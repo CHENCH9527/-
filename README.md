@@ -73,6 +73,26 @@
 
 5. 进入仓库的 `Actions` 页面，选择 `Daily Hangzhou Weather`，点击 `Run workflow` 手动测试一次。
 
+## 发送给群组订阅人
+
+订阅人需要先扫描 PushPlus 群组二维码加入群组，并完成微信渠道绑定。在“订阅人管理”中，“微信”显示绿色表示该订阅人具备微信接收能力。
+
+群发时还需要把群组编码配置到 GitHub：
+
+1. 在 PushPlus 的“群组管理”中找到对应群组，复制“群组编码”。这里使用的是群组编码，不是群组名称。
+2. 打开 GitHub 仓库的 `Settings -> Secrets and variables -> Actions`。
+3. 切换到 `Variables` 标签，点击 `New repository variable`。
+4. 填写：
+
+   ```text
+   Name: PUSHPLUS_TOPIC
+   Value: 你的 PushPlus 群组编码
+   ```
+
+5. 保存后从工作流主页点击 `Run workflow` 创建新任务。
+
+脚本检测到 `PUSHPLUS_TOPIC` 后，会把 `topic` 参数随消息一起发送，群组中的订阅人都会收到提醒。发送者本人也需要加入该群组，才能作为订阅人收到群发消息。如果未设置 `PUSHPLUS_TOPIC`，消息仍只发送给 `PUSHPLUS_TOKEN` 对应的账号。
+
 ## 时间说明
 
 定时表达式是 `0 23 * * *`，GitHub 按 UTC 执行，对应北京时间每天 07:00。

@@ -429,17 +429,22 @@ def build_message(daily: dict) -> str:
 
 def send_to_wechat(content: str) -> None:
     token = os.environ.get("PUSHPLUS_TOKEN")
+    topic = os.environ.get("PUSHPLUS_TOPIC")
     if not token:
         raise RuntimeError("缺少环境变量 PUSHPLUS_TOKEN")
 
+    payload = {
+        "token": token,
+        "title": MESSAGE_TITLE,
+        "content": content,
+        "template": "markdown",
+    }
+    if topic:
+        payload["topic"] = topic
+
     response = requests.post(
         PUSHPLUS_URL,
-        json={
-            "token": token,
-            "title": MESSAGE_TITLE,
-            "content": content,
-            "template": "markdown",
-        },
+        json=payload,
         timeout=20,
     )
     response.raise_for_status()
