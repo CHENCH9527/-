@@ -25,4 +25,4 @@ jobs:
         run: python weather.py
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-          PUSHPLUS_TOPIC: ${{ vars.PUSHPLUS_TOPIC }}
+          PUSHPLUS_TOPIC: hangzhou_weather
