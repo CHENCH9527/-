@@ -104,6 +104,7 @@ def send_to_wechat(content: str) -> None:
             "title": f"{CITY}今日天气",
             "content": content,
             "template": "markdown",
+            "topic": "hangzhou_weather",
         },
         timeout=20,
     )
