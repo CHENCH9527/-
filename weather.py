@@ -7,7 +7,7 @@ import requests
 
 CITY = "杭州"
 RECIPIENT_NAME = "灯芯"
-MESSAGE_TITLE = f"{RECIPIENT_NAME}专属天气提醒"
+MESSAGE_TITLE = "🌧️ 灯芯出门穿衣指南"
 LATITUDE = 30.2741
 LONGITUDE = 120.1551
 PUSHPLUS_URL = "https://www.pushplus.plus/send"
@@ -48,7 +48,6 @@ STYLE_PROFILES = [
     {
         "name": "元气鼓励版",
         "tone": "energetic",
-        "headline": "灯芯元气天气站",
         "greeting": "早呀，灯芯！能量条已充满，先收下今天的天气情报。",
         "clothing_label": "元气穿搭",
         "travel_label": "出发加油站",
@@ -57,7 +56,6 @@ STYLE_PROFILES = [
     {
         "name": "古风小笺",
         "tone": "ancient",
-        "headline": "灯芯晴雨小笺",
         "greeting": "灯芯安好，今朝杭州天色已为你探得。",
         "clothing_label": "添衣小笺",
         "travel_label": "出行叮咛",
@@ -66,7 +64,6 @@ STYLE_PROFILES = [
     {
         "name": "二次元播报风",
         "tone": "anime",
-        "headline": "灯芯天气作战部",
         "greeting": "早安，灯芯！今日天气副本加载完毕。",
         "clothing_label": "装备栏",
         "travel_label": "出行任务",
@@ -75,7 +72,6 @@ STYLE_PROFILES = [
     {
         "name": "温柔陪伴版",
         "tone": "default",
-        "headline": "灯芯温柔晨报",
         "greeting": "早上好，灯芯。慢慢醒来，先看看今天的天气。",
         "clothing_label": "穿衣小纸条",
         "travel_label": "出门小叮嘱",
@@ -84,7 +80,6 @@ STYLE_PROFILES = [
     {
         "name": "俏皮日常版",
         "tone": "default",
-        "headline": "灯芯天气小剧场",
         "greeting": "灯芯灯芯，今天的天空又有新剧情啦。",
         "clothing_label": "穿搭小机灵",
         "travel_label": "出门别大意",
@@ -93,7 +88,6 @@ STYLE_PROFILES = [
     {
         "name": "晨间电台版",
         "tone": "default",
-        "headline": "灯芯晨间电台",
         "greeting": "早间频道准时开播，灯芯请收听今日天气。",
         "clothing_label": "今日穿搭",
         "travel_label": "通勤提示",
@@ -102,7 +96,6 @@ STYLE_PROFILES = [
     {
         "name": "天气侦察版",
         "tone": "default",
-        "headline": "灯芯气象侦察局",
         "greeting": "报告灯芯，杭州天空状态已侦察完毕。",
         "clothing_label": "装备建议",
         "travel_label": "路况情报",
@@ -111,7 +104,6 @@ STYLE_PROFILES = [
     {
         "name": "贴心管家版",
         "tone": "default",
-        "headline": "灯芯天气管家",
         "greeting": "早上好灯芯，天气管家来交今天的作业啦。",
         "clothing_label": "衣着安排",
         "travel_label": "出门清单",
@@ -120,7 +112,6 @@ STYLE_PROFILES = [
     {
         "name": "治愈松弛版",
         "tone": "default",
-        "headline": "灯芯慢慢天气",
         "greeting": "早安，灯芯。先看看天空，再不慌不忙地开始一天。",
         "clothing_label": "舒服穿搭",
         "travel_label": "从容出门",
@@ -129,7 +120,6 @@ STYLE_PROFILES = [
     {
         "name": "清爽简报版",
         "tone": "default",
-        "headline": "灯芯天气简报",
         "greeting": "灯芯早，今日天气重点已经整理好了。",
         "clothing_label": "穿衣建议",
         "travel_label": "出行建议",
@@ -138,7 +128,6 @@ STYLE_PROFILES = [
     {
         "name": "冒险任务版",
         "tone": "anime",
-        "headline": "灯芯今日冒险指南",
         "greeting": "灯芯，今日地图已开启，天气任务请查收。",
         "clothing_label": "冒险装备",
         "travel_label": "行动提示",
@@ -147,11 +136,26 @@ STYLE_PROFILES = [
     {
         "name": "云朵来信版",
         "tone": "default",
-        "headline": "写给灯芯的天空来信",
         "greeting": "灯芯早呀，今天的云朵托我捎来一封天气信。",
         "clothing_label": "衣橱回信",
         "travel_label": "路上叮咛",
         "closing": "信读完啦，愿灯芯今天遇见温柔的风和好心情。",
+    },
+    {
+        "name": "皇上奏报版",
+        "tone": "imperial",
+        "greeting": "启禀灯芯陛下，杭州今日天象已探明，特来呈报。",
+        "clothing_label": "更衣奏报",
+        "travel_label": "出巡叮嘱",
+        "closing": "奏报完毕，愿陛下今日出行安稳，诸事顺遂，龙颜常悦。",
+    },
+    {
+        "name": "灯芯总裁大人版",
+        "tone": "ceo",
+        "greeting": "早上好，灯芯总裁大人。今日杭州天气简报已整理完毕。",
+        "clothing_label": "今日着装方案",
+        "travel_label": "行程风险提示",
+        "closing": "汇报完毕。请灯芯总裁大人从容出发，今天依旧稳稳掌控全场。",
     },
 ]
 
@@ -195,6 +199,26 @@ CLOTHING_ADVICE = {
         "chilly": "卫衣加外套是今日推荐装备，保暖属性别忘升级。",
         "cold": "厚外套和长裤请装备完毕，优先守住体温值。",
         "very_cold": "寒冷首领登场！羽绒服、围巾和手套全部装备。",
+    },
+    "imperial": {
+        "very_hot": "今日暑气颇盛，请陛下着轻薄短衣，遮阳防晒亦不可少。",
+        "hot": "天气偏暖，请陛下轻装即可；若入冷房，可备薄外衣。",
+        "warm_cool": "昼暖晨凉，请陛下着薄衫，并备一件外衣随时添减。",
+        "warm": "今日气候温和，请陛下着轻便衣衫，以舒适为宜。",
+        "cool": "晨夕微凉，请陛下着长袖薄褂，谨防温差扰身。",
+        "chilly": "凉意渐浓，请陛下添卫衣或针织外衫，莫要受寒。",
+        "cold": "今日寒意明显，请陛下着厚衣长裤，并注意手足保暖。",
+        "very_cold": "寒气甚重，请陛下披羽绒厚衣，围巾手套一并备齐。",
+    },
+    "ceo": {
+        "very_hot": "建议选择轻薄短袖，防晒衣和遮阳装备列入今日必备清单。",
+        "hot": "建议轻装出行；如需长时间待在空调房，请备一件薄外套。",
+        "warm_cool": "建议短袖搭配薄外套，方便根据早晚温差灵活调整。",
+        "warm": "轻便长袖或短袖均可，以舒适利落为今日着装重点。",
+        "cool": "建议长袖搭配薄外套，兼顾体面与早晚保暖需求。",
+        "chilly": "建议卫衣或针织衫搭配外套，避免低温影响今日状态。",
+        "cold": "建议厚外套、毛衣和长裤，手足保暖也请纳入安排。",
+        "very_cold": "建议羽绒服或厚棉服，并配齐围巾手套，保暖优先。",
     },
 }
 
@@ -246,6 +270,30 @@ TRAVEL_ADVICE = {
         "strong_wind": "强风警报！减少骑行并注意高空物品。",
         "wind": "风力增益生效，帽子和轻便物品记得锁定。",
         "uv": "紫外线伤害偏高，请装备防晒道具。",
+    },
+    "imperial": {
+        "thunder": "今日或有雷雨，请陛下减少户外停留，远离旷野高木。",
+        "snow": "或有飞雪，道路湿滑，请陛下缓步慢行，车驾保持距离。",
+        "rain": "今日有雨，请陛下携伞，鞋履宜防滑耐湿。",
+        "rain_time": "出巡路上可多留片刻，莫与风雨争急。",
+        "maybe_rain": "云有雨意，请陛下随身备一柄折伞。",
+        "dry": "今日雨意不浓，陛下可照常出巡。",
+        "fog": "雾气朦胧，请陛下行路驾车时多加留神。",
+        "strong_wind": "风势颇劲，请陛下少骑行，并提防高处落物。",
+        "wind": "今日风意稍盛，请陛下拿稳帽子与随身物件。",
+        "uv": "日光稍烈，请陛下出门时做好防晒。",
+    },
+    "ceo": {
+        "thunder": "雷雨风险较高，建议压缩户外行程，避开空旷处和高大树木。",
+        "snow": "可能出现降雪和湿滑路面，请放慢行程并保持安全车距。",
+        "rain": "今日有雨，请将雨伞和防滑鞋列入出行清单。",
+        "rain_time": "建议为通勤预留额外时间，避免天气打乱行程节奏。",
+        "maybe_rain": "存在降雨可能，建议随身携带折叠伞作为备用方案。",
+        "dry": "降雨影响较低，今日行程可按原计划推进。",
+        "fog": "能见度偏低，步行和驾车时请提高观察频率。",
+        "strong_wind": "风力较强，建议减少骑行，并留意高空坠物风险。",
+        "wind": "风力略高，请拿稳随身物品，骑行时注意侧风。",
+        "uv": "紫外线偏强，请把防晒纳入出门前的必要步骤。",
     },
 }
 
@@ -352,25 +400,18 @@ def build_travel_advice(
     return advice
 
 
-def get_weather_icon(weather_code: int) -> str:
-    if weather_code == 0:
-        return "🌞"
-    if weather_code in {1, 2}:
-        return "⛅"
-    if weather_code == 3:
-        return "☁️"
-    if weather_code in {45, 48}:
-        return "🌫️"
-    if weather_code in {71, 73, 75, 77, 85, 86}:
-        return "❄️"
-    if weather_code in {95, 96, 99}:
-        return "⛈️"
-    return "🌧️"
-
-
 def get_daily_style(date_text: str) -> dict[str, str]:
-    day_number = date.fromisoformat(date_text).toordinal()
-    return STYLE_PROFILES[day_number % len(STYLE_PROFILES)]
+    run_number = os.environ.get("GITHUB_RUN_NUMBER")
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+
+    if run_number and run_number.isdigit() and run_attempt.isdigit():
+        style_index = (int(run_number) - 1 + int(run_attempt) - 1) % len(
+            STYLE_PROFILES
+        )
+    else:
+        style_index = date.fromisoformat(date_text).toordinal() % len(STYLE_PROFILES)
+
+    return STYLE_PROFILES[style_index]
 
 
 def build_message(daily: dict) -> str:
@@ -380,7 +421,6 @@ def build_message(daily: dict) -> str:
     sunset = values["sunset"].split("T", 1)[-1]
     display_date = date.fromisoformat(values["time"]).strftime("%m月%d日")
     style = get_daily_style(values["time"])
-    weather_icon = get_weather_icon(values["weather_code"])
     clothing_advice = build_clothing_advice(
         values["temperature_2m_min"],
         values["temperature_2m_max"],
@@ -396,7 +436,8 @@ def build_message(daily: dict) -> str:
 
     return "\n".join(
         [
-            f"**{weather_icon} {style['headline']}｜{display_date}**",
+            f"**{MESSAGE_TITLE}**",
+            f"📅 {display_date}",
             "",
             style["greeting"],
             "",
