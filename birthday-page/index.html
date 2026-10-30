@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1230" />
+    <title>OPERATION: BIRTHDAY | xx</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="birthday-page">
+      <section class="scene-shell" aria-labelledby="scene-title">
+        <canvas id="scene" width="320" height="400" aria-hidden="true"></canvas>
+        <div class="scene-copy">
+          <h1 id="scene-title">xx，生日快乐！</h1>
+          <p id="scene-subtitle">生日特别行动简报</p>
+        </div>
+        <div class="scene-actions" aria-label="动画控制">
+          <button id="replay" type="button" aria-label="重新播放" title="重新播放">↻</button>
+          <button id="pause" type="button" aria-label="暂停动画" title="暂停动画">Ⅱ</button>
+        </div>
+      </section>
+    </main>
+
+    <noscript>
+      <p class="noscript-message">xx，生日快乐！请启用 JavaScript 查看生日特别行动动画。</p>
+    </noscript>
+    <script src="app.js"></script>
+  </body>
+</html>
