@@ -11,6 +11,7 @@ MESSAGE_TITLE = "🌧️ 灯芯出门穿衣指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
 BIRTHDAY_MONTH = 10
 BIRTHDAY_DAY = 31
+BIRTHDAY_PAGE_URL = "https://chench9527.github.io/-/"
 LATITUDE = 30.2741
 LONGITUDE = 120.1551
 PUSHPLUS_URL = "https://www.pushplus.plus/send"
@@ -310,16 +311,7 @@ def get_beijing_now() -> datetime:
 
 
 def get_birthday_page_url() -> str:
-    configured_url = os.environ.get("BIRTHDAY_PAGE_URL")
-    if configured_url:
-        return configured_url.rstrip("/") + "/"
-
-    repository = os.environ.get("GITHUB_REPOSITORY")
-    if repository and "/" in repository:
-        owner, repository_name = repository.split("/", 1)
-        return f"https://{owner}.github.io/{repository_name}/"
-
-    return "请配置 BIRTHDAY_PAGE_URL"
+    return BIRTHDAY_PAGE_URL
 
 
 def is_birthday_moment(now: datetime) -> bool:
@@ -344,7 +336,7 @@ def build_birthday_message() -> str:
             "",
             f"[点击接取任务，打开生日祝福网页]({page_url})",
             "",
-            "祝你新的一岁，平安顺利，常有好心情。",
+            "祝你新的一岁，平安顺利，天天开心。",
         ]
     )
 
