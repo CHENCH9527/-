@@ -52,6 +52,70 @@ body {
   image-rendering: pixelated;
 }
 
+#birthday-audio {
+  display: none;
+}
+
+.password-form {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 16%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid var(--cyan);
+  background: rgba(7, 17, 38, 0.96);
+}
+
+.password-form[hidden] {
+  display: none;
+}
+
+.password-form input,
+.password-form button {
+  min-height: 38px;
+  border: 2px solid var(--line);
+  border-radius: 2px;
+  background: #0b1230;
+  color: var(--text);
+  font: 700 14px/1 "Courier New", monospace;
+}
+
+.password-form input {
+  min-width: 0;
+  padding: 0 10px;
+  letter-spacing: 2px;
+}
+
+.password-form input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.password-form button {
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.password-form button:hover,
+.password-form button:focus-visible,
+.password-form input:focus-visible {
+  border-color: var(--pink);
+  outline: 2px solid rgba(255, 121, 186, 0.35);
+  outline-offset: 2px;
+}
+
+.password-form p {
+  grid-column: 1 / -1;
+  min-height: 14px;
+  margin: 0;
+  color: var(--pink);
+  font: 10px/1.2 "Courier New", monospace;
+  text-align: center;
+}
+
 .scene-copy {
   position: absolute;
   width: 1px;

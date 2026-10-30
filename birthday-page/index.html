@@ -4,15 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b1230" />
-    <title>OPERATION: BIRTHDAY | xx</title>
+    <title>OPERATION: BIRTHDAY | 灯芯</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="birthday-page">
       <section class="scene-shell" aria-labelledby="scene-title">
-        <canvas id="scene" width="320" height="400" aria-hidden="true"></canvas>
+        <canvas id="scene" width="640" height="800" aria-hidden="true"></canvas>
+        <audio id="birthday-audio" preload="auto" aria-hidden="true">
+          <source src="assets/birthday-message.aac" type="audio/aac" />
+        </audio>
+        <form id="password-form" class="password-form" hidden>
+          <input
+            id="password-input"
+            type="text"
+            inputmode="numeric"
+            maxlength="4"
+            autocomplete="off"
+            placeholder="PASSWORD"
+            aria-label="输入保险箱密码"
+          />
+          <button type="submit" title="解锁保险箱">解锁</button>
+          <p id="password-status" role="status" aria-live="polite"></p>
+        </form>
         <div class="scene-copy">
-          <h1 id="scene-title">xx，生日快乐！</h1>
+          <h1 id="scene-title">灯芯，生日快乐！</h1>
           <p id="scene-subtitle">生日特别行动简报</p>
         </div>
         <div class="scene-actions" aria-label="动画控制">
@@ -23,7 +39,7 @@
     </main>
 
     <noscript>
-      <p class="noscript-message">xx，生日快乐！请启用 JavaScript 查看生日特别行动动画。</p>
+      <p class="noscript-message">灯芯，生日快乐！请启用 JavaScript 查看生日特别行动动画。</p>
     </noscript>
     <script src="app.js"></script>
   </body>
