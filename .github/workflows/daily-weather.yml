@@ -38,5 +38,4 @@ jobs:
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           PUSHPLUS_TOPIC: hangzhou_weather
-          BIRTHDAY_PAGE_URL: ${{ secrets.BIRTHDAY_PAGE_URL }}
           MESSAGE_KIND: ${{ inputs.message_kind || 'auto' }}
