@@ -1,6 +1,6 @@
 # 灯芯专属杭州天气提醒
 
-每天北京时间 07:00 获取杭州当天的天气，并通过 PushPlus 推送“🌧️ 灯芯出门穿衣指南”到个人微信。
+每天北京时间 07:00 获取杭州当天的天气，并通过 PushPlus 推送“🌧️ 灯芯出门穿衣指南”到个人微信。每年 10 月 31 日北京时间 00:00，额外推送“生日特别来信”，点击消息中的任务链接即可打开生日祝福网页。
 
 ## 提醒内容
 
@@ -67,7 +67,7 @@
 ## 配置步骤
 
 1. 注册并登录 [PushPlus](https://www.pushplus.plus/)，绑定个人微信，获取用户 Token。
-2. 新建一个 GitHub 仓库，把本目录中的 `weather.py` 和 `.github/workflows/daily-weather.yml` 上传到仓库根目录。
+2. 新建一个 GitHub 仓库，把本目录中的文件上传到仓库根目录。
 3. 打开仓库的 `Settings -> Secrets and variables -> Actions`。
 4. 新建 Repository secret：
 
@@ -76,7 +76,18 @@
    Secret: 你的 PushPlus Token
    ```
 
-5. 进入仓库的 `Actions` 页面，选择 `Daily Hangzhou Weather`，点击 `Run workflow` 手动测试一次。
+5. 如果仓库不是标准的 `https://用户名.github.io/仓库名/` Pages 地址，再额外新建：
+
+   ```text
+   Name: BIRTHDAY_PAGE_URL
+   Secret: 生日网页的公网 URL
+   ```
+
+   未配置时，脚本会根据 GitHub 仓库自动生成 Pages 地址。
+6. 进入仓库的 `Settings -> Pages`，将发布方式设为 `GitHub Actions`，然后运行一次 `Deploy Birthday Page` 工作流。
+7. 进入仓库的 `Actions` 页面，选择 `Scheduled WeChat Messages`，点击 `Run workflow`，可用 `weather` 或 `birthday` 测试对应消息。
+
+生日网页部署成功后，工作流页面会显示实际的 Pages URL；如果配置了 `BIRTHDAY_PAGE_URL`，请确认它能在微信内打开。
 
 ## 发送给群组订阅人
 
@@ -94,9 +105,9 @@ PUSHPLUS_TOPIC: hangzhou_weather
 
 ## 时间说明
 
-定时表达式是 `0 23 * * *`，GitHub 按 UTC 执行，对应北京时间每天 07:00。
+天气定时表达式是 `0 23 * * *`，GitHub 按 UTC 执行，对应北京时间每天 07:00。生日来信定时表达式是 `0 16 * * *`，对应北京时间每天 00:00，但脚本只会在 10 月 31 日当天发送生日消息。
 
-GitHub Actions 的定时任务可能因为平台负载延迟几分钟。如果必须严格在 07:00 发送，建议把同一个脚本放到云服务器、腾讯云函数或阿里云函数计算中运行。
+GitHub Actions 的定时任务可能因为平台负载延迟几分钟。如果必须严格在 00:00 或 07:00 发送，建议把同一个脚本放到云服务器、腾讯云函数或阿里云函数计算中运行。
 
 ## 天气数据
 

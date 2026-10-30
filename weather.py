@@ -8,6 +8,9 @@ import requests
 CITY = "杭州"
 RECIPIENT_NAME = "灯芯"
 MESSAGE_TITLE = "🌧️ 灯芯出门穿衣指南"
+BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
+BIRTHDAY_MONTH = 10
+BIRTHDAY_DAY = 31
 LATITUDE = 30.2741
 LONGITUDE = 120.1551
 PUSHPLUS_URL = "https://www.pushplus.plus/send"
@@ -302,6 +305,50 @@ def get_beijing_today() -> str:
     return datetime.now(BEIJING_TIMEZONE).date().isoformat()
 
 
+def get_beijing_now() -> datetime:
+    return datetime.now(BEIJING_TIMEZONE)
+
+
+def get_birthday_page_url() -> str:
+    configured_url = os.environ.get("BIRTHDAY_PAGE_URL")
+    if configured_url:
+        return configured_url.rstrip("/") + "/"
+
+    repository = os.environ.get("GITHUB_REPOSITORY")
+    if repository and "/" in repository:
+        owner, repository_name = repository.split("/", 1)
+        return f"https://{owner}.github.io/{repository_name}/"
+
+    return "请配置 BIRTHDAY_PAGE_URL"
+
+
+def is_birthday_moment(now: datetime) -> bool:
+    return (
+        now.month == BIRTHDAY_MONTH
+        and now.day == BIRTHDAY_DAY
+        and now.hour == 0
+    )
+
+
+def build_birthday_message() -> str:
+    page_url = get_birthday_page_url()
+    return "\n".join(
+        [
+            "**生日特别来信**",
+            "",
+            "灯芯，生日快乐！",
+            "一份特别任务已经准备完成，请在今天零点接取。",
+            "",
+            "任务名称：生日祝福行动",
+            "任务状态：等待接取",
+            "",
+            f"[点击接取任务，打开生日祝福网页]({page_url})",
+            "",
+            "祝你新的一岁，平安顺利，常有好心情。",
+        ]
+    )
+
+
 def get_weather() -> dict:
     forecast_date = get_beijing_today()
     response = requests.get(
@@ -468,7 +515,7 @@ def build_message(daily: dict) -> str:
     )
 
 
-def send_to_wechat(content: str) -> None:
+def send_to_wechat(content: str, title: str = MESSAGE_TITLE) -> None:
     token = os.environ.get("PUSHPLUS_TOKEN")
     topic = os.environ.get("PUSHPLUS_TOPIC")
     if not token:
@@ -476,7 +523,7 @@ def send_to_wechat(content: str) -> None:
 
     payload = {
         "token": token,
-        "title": MESSAGE_TITLE,
+        "title": title,
         "content": content,
         "template": "markdown",
     }
@@ -495,7 +542,25 @@ def send_to_wechat(content: str) -> None:
 
 
 if __name__ == "__main__":
-    message = build_message(get_weather())
-    send_to_wechat(message)
-    print(message)
-    print("天气提醒已提交到 PushPlus。")
+    now = get_beijing_now()
+    message_kind = os.environ.get("MESSAGE_KIND", "auto")
+
+    if message_kind == "birthday" or (
+        message_kind == "auto" and is_birthday_moment(now)
+    ):
+        message = build_birthday_message()
+        send_to_wechat(message, BIRTHDAY_MESSAGE_TITLE)
+        print(message)
+        print("生日特别来信已提交到 PushPlus。")
+    elif message_kind == "weather" or (
+        message_kind == "auto" and now.hour == 7
+    ):
+        message = build_message(get_weather())
+        send_to_wechat(message)
+        print(message)
+        print("天气提醒已提交到 PushPlus。")
+    else:
+        print(
+            f"北京时间 {now:%Y-%m-%d %H:%M} 无需发送消息；"
+            "如需手动测试，请设置 MESSAGE_KIND=weather 或 birthday。"
+        )
