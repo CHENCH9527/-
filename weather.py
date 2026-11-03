@@ -10,7 +10,7 @@ RECIPIENT_NAME = "灯芯"
 MESSAGE_TITLE = "🌧️ 灯芯出门穿衣指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
 BIRTHDAY_MONTH = 10
-BIRTHDAY_DAY = 31
+BIRTHDAY_DAY = 30
 BIRTHDAY_PAGE_URL = "https://chench9527.github.io/-/"
 LATITUDE = 30.2741
 LONGITUDE = 120.1551
@@ -318,7 +318,8 @@ def is_birthday_moment(now: datetime) -> bool:
     return (
         now.month == BIRTHDAY_MONTH
         and now.day == BIRTHDAY_DAY
-        and now.hour == 0
+        and now.hour == 23
+        and now.minute >= 20
     )
 
 
@@ -545,7 +546,7 @@ if __name__ == "__main__":
         print(message)
         print("生日特别来信已提交到 PushPlus。")
     elif message_kind == "weather" or (
-        message_kind == "auto" and now.hour == 7
+        message_kind == "auto" and now.hour == 6 and now.minute >= 10
     ):
         message = build_message(get_weather())
         send_to_wechat(message)
