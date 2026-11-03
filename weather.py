@@ -10,6 +10,16 @@ CITY = "杭州"
 RECIPIENT_NAME = "灯芯"
 MESSAGE_TITLE = "灯芯今日出门指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
+CONCLUSION_ANIMALS = (
+    "🐷",
+    "🐶",
+    "🐱",
+    "🐰",
+    "🐼",
+    "🐸",
+    "🦊",
+    "🐻",
+)
 REMINDER_FACES = (
     "(●'◡'●)",
     "(｡•̀ᴗ-)✧",
@@ -19,6 +29,62 @@ REMINDER_FACES = (
     "(๑˃̵ᴗ˂̵)و",
     "(❁´◡`❁)",
     "( •̀ ω •́ )✧",
+)
+
+SOLAR_TERM_MESSAGES = {
+    (1, 5): "今天是小寒哦，天气寒冷，出门要注意保暖。",
+    (1, 20): "今天是大寒哦，一年中最冷的时候到了，注意保暖。",
+    (2, 4): "今天是立春哦，天气开始慢慢回暖，早晚温差仍要注意。",
+    (2, 19): "今天是雨水哦，天气变化多，出门记得看好雨具。",
+    (3, 5): "今天是惊蛰哦，春天的气息越来越明显啦。",
+    (3, 20): "今天是春分哦，白天和夜晚开始变得一样长。",
+    (4, 4): "今天是清明哦，天气转暖，出门注意踏青安全。",
+    (4, 20): "今天是谷雨哦，春雨渐多，出门记得留意降雨。",
+    (5, 5): "今天是立夏哦，天气开始变热，注意补水防晒。",
+    (5, 21): "今天是小满哦，天气渐热，穿搭可以轻便一些。",
+    (6, 5): "今天是芒种哦，天气闷热，出门注意防晒和补水。",
+    (6, 21): "今天是夏至哦，白天最长，外出注意防晒降温。",
+    (7, 7): "今天是小暑哦，天气开始炎热，记得防暑降温。",
+    (7, 23): "今天是大暑哦，一年中最热的时候，注意防暑。",
+    (8, 7): "今天是立秋哦，天气还可能炎热，早晚温差会慢慢变大。",
+    (8, 23): "今天是处暑哦，暑气渐退，早晚出门可以留意温差。",
+    (9, 7): "今天是白露哦，早晚开始转凉，记得适时添衣。",
+    (9, 23): "今天是秋分哦，天气渐凉，早晚出门注意保暖。",
+    (10, 8): "今天是寒露哦，天气明显转凉，出门记得添衣。",
+    (10, 23): "今天是霜降哦，天气更冷了，注意保暖防寒。",
+    (11, 7): "今天是立冬哦，要注意添衣保暖，最好裹成粽子。",
+    (11, 22): "今天是小雪哦，天气渐冷，出门注意保暖和路滑。",
+    (12, 7): "今天是大雪哦，天气寒冷，出门记得做好保暖。",
+    (12, 21): "今天是冬至哦，白天变短，天气寒冷，注意保暖。",
+}
+
+HOLIDAY_MESSAGES = {
+    (1, 1): "CC祝你元旦开心，新的一年顺顺利利！",
+    (2, 14): "CC祝你情人节快乐，今天也要被温柔对待。",
+    (3, 8): "CC祝你妇女节快乐，愿你每天都开心自在。",
+    (5, 1): "CC祝你劳动节快乐，好好休息，玩得开心。",
+    (6, 1): "CC祝你儿童节快乐，保持童心，天天开心。",
+    (9, 10): "CC祝老师们节日快乐，也祝你今天心情舒畅。",
+    (10, 1): "CC祝你国庆节快乐，假期平安开心。",
+    (12, 25): "CC祝你圣诞快乐，愿今天有温暖和惊喜。",
+}
+
+FREEZING_CONCLUSIONS = (
+    "CC得穿秋裤了，今天真的很冷，注意保暖",
+    "你别把灯芯冻坏了，赶紧穿厚一点",
+    "今天冷得不讲道理，灯芯要裹严实一点",
+    "CC建议灯芯全副武装，别让冷风钻进来",
+    "零度以下的天气太认真了，灯芯记得把自己捂暖",
+    "今天出门先把灯芯包好，别让寒风占了便宜",
+    "冷空气来势汹汹，灯芯要穿成一个暖呼呼的小团子",
+    "今天不适合硬扛，灯芯请把厚衣服安排上",
+    "外面冷到冒烟，灯芯要把帽子围巾都戴好",
+    "CC申请把灯芯装进保温袋，出门一定要穿暖",
+    "今天的风像开了冰冻模式，灯芯要穿厚实一点",
+    "灯芯，外套拉链拉到顶，别给冷空气留门",
+    "今天请把保暖放在第一位，灯芯不能着凉啦",
+    "寒冷天气已上线，灯芯要带着暖意再出门",
+    "CC提醒灯芯开启冬日防御，厚衣服穿起来",
 )
 BIRTHDAY_MONTH = 10
 BIRTHDAY_DAY = 30
@@ -566,19 +632,19 @@ def build_outing_conclusion(
     thunder_codes = {95, 96, 99}
 
     if max_temp < 0:
-        conclusion = "CC得穿秋裤了，今天真的很冷，注意保暖"
+        conclusion = random.choice(FREEZING_CONCLUSIONS)
     elif max_temp < 10:
-        conclusion = "CC觉得今天很冷，建议穿厚外套，注意保暖"
+        conclusion = "CC会觉得今天很冷，建议穿厚外套，注意保暖"
     elif max_temp < 16 or min_temp < 8:
-        conclusion = "CC觉得今天偏冷，建议多穿一层"
+        conclusion = "CC会觉得今天偏冷，建议多穿一层"
     elif max_temp < 22 or min_temp < 14:
-        conclusion = "CC觉得今天有点凉，建议长袖搭配薄外套"
+        conclusion = "CC会觉得今天有点凉，建议长袖搭配薄外套"
     elif max_temp >= 32:
         conclusion = "CC要被热化了，建议穿轻薄透气的衣服"
     elif max_temp >= 28:
-        conclusion = "CC觉得今天有点热，建议选择轻薄穿搭"
+        conclusion = "CC会觉得今天有点热，建议选择轻薄穿搭"
     else:
-        conclusion = "CC觉得今天温度适中，按舒适穿搭出门即可"
+        conclusion = "CC会觉得今天温度适中，按舒适穿搭出门即可"
 
     reminders = []
     if weather_code in thunder_codes or weather_code in rain_codes:
@@ -608,6 +674,19 @@ def build_temperature_hint(min_temp: float, max_temp: float) -> str:
     if max_temp >= 28:
         return f"今日最高温度：{max_temp}°C"
     return ""
+
+
+def build_special_day_notes(date_text: str) -> list[str]:
+    current_date = date.fromisoformat(date_text)
+    key = (current_date.month, current_date.day)
+    notes = []
+    solar_term_message = SOLAR_TERM_MESSAGES.get(key)
+    holiday_message = HOLIDAY_MESSAGES.get(key)
+    if solar_term_message:
+        notes.append(solar_term_message)
+    if holiday_message:
+        notes.append(holiday_message)
+    return notes
 
 
 def get_daily_style(date_text: str) -> dict[str, str]:
@@ -661,17 +740,23 @@ def build_message(daily: dict) -> str:
         values["temperature_2m_min"],
         values["temperature_2m_max"],
     )
+    special_day_notes = build_special_day_notes(values["time"])
     key_reminder = (
         travel_advice[0]
         if travel_advice
         else "留意天气变化，按需调整出行安排。"
     )
-    reminder_face = random.choice(REMINDER_FACES)
+    title_face = random.choice(REMINDER_FACES)
+    conclusion_animal = random.choice(CONCLUSION_ANIMALS)
+    conclusion_lines = [f"- {item}" for item in outing_conclusion]
+    if conclusion_lines:
+        conclusion_lines[-1] += f"{conclusion_animal}。"
 
     return "\n".join(
         [
-            f"**{message_title}**",
+            f"**{message_title} {title_face}**",
             f"📅 {display_date}",
+            *special_day_notes,
             "",
             (
                 f"今天温度：{values['temperature_2m_min']}°C ~ "
@@ -680,7 +765,7 @@ def build_message(daily: dict) -> str:
             *([temperature_hint] if temperature_hint else []),
             "",
             "今日出门结论：",
-            *[f"- {item}。" for item in outing_conclusion],
+            *conclusion_lines,
             "",
             "👕 **穿衣**",
             clothing_advice,
@@ -701,7 +786,7 @@ def build_message(daily: dict) -> str:
             "",
             f"🌅 日出 {sunrise} ｜ 日落 {sunset}",
             "",
-            f"今日提醒：{key_reminder} {reminder_face}",
+            f"今日提醒：{key_reminder}",
         ]
     )
 
