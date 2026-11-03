@@ -1,5 +1,6 @@
 import os
-from datetime import date, datetime
+import random
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
@@ -7,8 +8,18 @@ import requests
 
 CITY = "杭州"
 RECIPIENT_NAME = "灯芯"
-MESSAGE_TITLE = "🌧️ 灯芯出门穿衣指南"
+MESSAGE_TITLE = "灯芯今日出门指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
+REMINDER_FACES = (
+    "(●'◡'●)",
+    "(｡•̀ᴗ-)✧",
+    "(๑•̀ㅂ•́)و✧",
+    "(ง •̀_•́)ง",
+    "(｡･ω･｡)ﾉ♡",
+    "(๑˃̵ᴗ˂̵)و",
+    "(❁´◡`❁)",
+    "( •̀ ω •́ )✧",
+)
 BIRTHDAY_MONTH = 10
 BIRTHDAY_DAY = 30
 BIRTHDAY_PAGE_URL = "https://chench9527.github.io/-/"
@@ -46,6 +57,37 @@ WEATHER_NAMES = {
     95: "雷雨",
     96: "雷雨夹冰雹",
     99: "强雷雨夹冰雹",
+}
+
+WEATHER_ICONS = {
+    0: "☀️",
+    1: "🌤️",
+    2: "⛅",
+    3: "☁️",
+    45: "🌫️",
+    48: "🌫️",
+    51: "🌦️",
+    53: "🌦️",
+    55: "🌧️",
+    56: "🌧️",
+    57: "🌧️",
+    61: "🌧️",
+    63: "🌧️",
+    65: "🌧️",
+    66: "🌧️",
+    67: "🌧️",
+    71: "❄️",
+    73: "❄️",
+    75: "❄️",
+    77: "🌨️",
+    80: "🌦️",
+    81: "🌦️",
+    82: "🌧️",
+    85: "🌨️",
+    86: "🌨️",
+    95: "⛈️",
+    96: "⛈️",
+    99: "⛈️",
 }
 
 STYLE_PROFILES = [
@@ -344,6 +386,9 @@ def build_birthday_message() -> str:
 
 def get_weather() -> dict:
     forecast_date = get_beijing_today()
+    previous_date = (
+        date.fromisoformat(forecast_date) - timedelta(days=1)
+    ).isoformat()
     response = requests.get(
         "https://api.open-meteo.com/v1/forecast",
         params={
@@ -362,7 +407,8 @@ def get_weather() -> dict:
                     "sunset",
                 ]
             ),
-            "start_date": forecast_date,
+            "hourly": "precipitation_probability,rain,weather_code",
+            "start_date": previous_date,
             "end_date": forecast_date,
             "temperature_unit": "celsius",
             "wind_speed_unit": "kmh",
@@ -371,12 +417,36 @@ def get_weather() -> dict:
         timeout=20,
     )
     response.raise_for_status()
-    daily = response.json()["daily"]
-    if not daily.get("time") or daily["time"][0] != forecast_date:
+    payload = response.json()
+    daily = payload["daily"]
+    if not daily.get("time") or daily["time"][-1] != forecast_date:
         raise RuntimeError(
             f"天气日期不匹配：请求 {forecast_date}，返回 {daily.get('time')}"
         )
-    return daily
+    today_index = daily["time"].index(forecast_date)
+    previous_index = today_index - 1
+    today = {
+        key: [values[today_index]]
+        for key, values in daily.items()
+    }
+    if previous_index >= 0:
+        today["previous_temperature_2m_max"] = [
+            daily["temperature_2m_max"][previous_index]
+        ]
+        today["previous_temperature_2m_min"] = [
+            daily["temperature_2m_min"][previous_index]
+        ]
+    hourly = payload.get("hourly", {})
+    today["rain_periods"] = [
+        build_rain_periods(
+            hourly.get("time", []),
+            hourly.get("precipitation_probability", []),
+            hourly.get("rain", []),
+            hourly.get("weather_code", []),
+            forecast_date,
+        )
+    ]
+    return today
 
 
 def build_clothing_advice(
@@ -401,6 +471,49 @@ def build_clothing_advice(
 
     advice = CLOTHING_ADVICE.get(tone, CLOTHING_ADVICE["default"])
     return advice[category]
+
+
+def build_rain_periods(
+    times: list[str],
+    probabilities: list[float],
+    rain_amounts: list[float],
+    weather_codes: list[int],
+    forecast_date: str,
+) -> str:
+    rain_codes = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82}
+    periods = []
+    current = []
+
+    def append_period() -> None:
+        if not current:
+            return
+        start_time = current[0][0][11:16]
+        last_hour = int(current[-1][0][11:13])
+        end_time = f"{last_hour + 1:02d}:00"
+        max_probability = max(item[1] for item in current)
+        periods.append(
+            f"{start_time}~{end_time}（最高概率{max_probability:.0f}%）"
+        )
+
+    for index, time_text in enumerate(times):
+        if not time_text.startswith(forecast_date):
+            continue
+        probability = probabilities[index] or 0
+        rain_amount = rain_amounts[index] or 0
+        weather_code = weather_codes[index]
+        likely_rain = (
+            probability >= 60
+            or rain_amount > 0
+            or weather_code in rain_codes
+        )
+        if likely_rain:
+            current.append((time_text, probability))
+        else:
+            append_period()
+            current.clear()
+    append_period()
+
+    return "、".join(periods) if periods else "暂无明显降雨时段"
 
 
 def build_travel_advice(
@@ -440,6 +553,63 @@ def build_travel_advice(
     return advice
 
 
+def build_outing_conclusion(
+    weather_code: int,
+    precipitation_probability: float,
+    min_temp: float,
+    max_temp: float,
+    previous_min_temp=None,
+    previous_max_temp=None,
+) -> list[str]:
+    rain_codes = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82}
+    snow_codes = {71, 73, 75, 77, 85, 86}
+    thunder_codes = {95, 96, 99}
+
+    if max_temp < 0:
+        conclusion = "CC得穿秋裤了，今天真的很冷，注意保暖"
+    elif max_temp < 10:
+        conclusion = "CC觉得今天很冷，建议穿厚外套，注意保暖"
+    elif max_temp < 16 or min_temp < 8:
+        conclusion = "CC觉得今天偏冷，建议多穿一层"
+    elif max_temp < 22 or min_temp < 14:
+        conclusion = "CC觉得今天有点凉，建议长袖搭配薄外套"
+    elif max_temp >= 32:
+        conclusion = "CC要被热化了，建议穿轻薄透气的衣服"
+    elif max_temp >= 28:
+        conclusion = "CC觉得今天有点热，建议选择轻薄穿搭"
+    else:
+        conclusion = "CC觉得今天温度适中，按舒适穿搭出门即可"
+
+    reminders = []
+    if weather_code in thunder_codes or weather_code in rain_codes:
+        reminders.append("今天有雨，记得带伞")
+    elif precipitation_probability >= 70:
+        reminders.append("今天降雨概率较高，记得带伞")
+    if weather_code in snow_codes:
+        reminders.append("可能有雪，注意路面湿滑")
+
+    drops = []
+    if previous_max_temp is not None:
+        drops.append(previous_max_temp - max_temp)
+    if previous_min_temp is not None:
+        drops.append(previous_min_temp - min_temp)
+    temperature_drop = max(drops, default=0)
+    if temperature_drop >= 2:
+        reminders.append(
+            f"今天比昨天降温约 {temperature_drop:.1f}°C，CC特别提醒你注意保暖"
+        )
+
+    return [conclusion, *reminders]
+
+
+def build_temperature_hint(min_temp: float, max_temp: float) -> str:
+    if max_temp < 22 or min_temp < 14:
+        return f"今日最低温度：{min_temp}°C"
+    if max_temp >= 28:
+        return f"今日最高温度：{max_temp}°C"
+    return ""
+
+
 def get_daily_style(date_text: str) -> dict[str, str]:
     run_number = os.environ.get("GITHUB_RUN_NUMBER")
     run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
@@ -454,8 +624,14 @@ def get_daily_style(date_text: str) -> dict[str, str]:
     return STYLE_PROFILES[style_index]
 
 
+def build_message_title(weather_code: int) -> str:
+    icon = WEATHER_ICONS.get(weather_code, "🌤️")
+    return f"{icon} {MESSAGE_TITLE}"
+
+
 def build_message(daily: dict) -> str:
     values = {key: daily[key][0] for key in daily}
+    message_title = build_message_title(values["weather_code"])
     weather_name = WEATHER_NAMES.get(values["weather_code"], "未知天气")
     sunrise = values["sunrise"].split("T", 1)[-1]
     sunset = values["sunset"].split("T", 1)[-1]
@@ -473,37 +649,59 @@ def build_message(daily: dict) -> str:
         values["uv_index_max"],
         style["tone"],
     )
+    outing_conclusion = build_outing_conclusion(
+        values["weather_code"],
+        values["precipitation_probability_max"],
+        values["temperature_2m_min"],
+        values["temperature_2m_max"],
+        values.get("previous_temperature_2m_min"),
+        values.get("previous_temperature_2m_max"),
+    )
+    temperature_hint = build_temperature_hint(
+        values["temperature_2m_min"],
+        values["temperature_2m_max"],
+    )
+    key_reminder = (
+        travel_advice[0]
+        if travel_advice
+        else "留意天气变化，按需调整出行安排。"
+    )
+    reminder_face = random.choice(REMINDER_FACES)
 
     return "\n".join(
         [
-            f"**{MESSAGE_TITLE}**",
+            f"**{message_title}**",
             f"📅 {display_date}",
             "",
-            style["greeting"],
+            (
+                f"今天温度：{values['temperature_2m_min']}°C ~ "
+                f"{values['temperature_2m_max']}°C · {weather_name}"
+            ),
+            *([temperature_hint] if temperature_hint else []),
             "",
-            f"**{CITY} · {weather_name}**",
-            (
-                f"{values['temperature_2m_min']}°C ~ "
-                f"{values['temperature_2m_max']}°C"
-            ),
-            (
-                f"降雨 {values['precipitation_probability_max']}% ｜ "
-                f"风速 {values['wind_speed_10m_max']} km/h"
-            ),
-            (
-                f"紫外线 {values['uv_index_max']} ｜ "
-                f"降水量 {values['precipitation_sum']} mm"
-            ),
+            "今日出门结论：",
+            *[f"- {item}。" for item in outing_conclusion],
             "",
-            f"👕 **{style['clothing_label']}**",
+            "👕 **穿衣**",
             clothing_advice,
             "",
-            f"🚗 **{style['travel_label']}**",
+            f"**{CITY}**",
+            (
+                f"体感参考：{values['temperature_2m_min']}°C ~ "
+                f"{values['temperature_2m_max']}°C"
+            ),
+            f"降雨概率：{values['precipitation_probability_max']}%",
+            f"降雨时段：{values['rain_periods']}",
+            f"降水量：{values['precipitation_sum']} mm",
+            f"风速：{values['wind_speed_10m_max']} km/h",
+            f"紫外线：{values['uv_index_max']}",
+            "",
+            "🎒 **出门装备**",
             *[f"- {item}" for item in travel_advice],
             "",
             f"🌅 日出 {sunrise} ｜ 日落 {sunset}",
             "",
-            style["closing"],
+            f"今日提醒：{key_reminder} {reminder_face}",
         ]
     )
 
@@ -548,8 +746,9 @@ if __name__ == "__main__":
     elif message_kind == "weather" or (
         message_kind == "auto" and now.hour == 6 and now.minute >= 10
     ):
-        message = build_message(get_weather())
-        send_to_wechat(message)
+        daily = get_weather()
+        message = build_message(daily)
+        send_to_wechat(message, build_message_title(daily["weather_code"][0]))
         print(message)
         print("天气提醒已提交到 PushPlus。")
     else:
