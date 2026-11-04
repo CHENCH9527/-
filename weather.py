@@ -52,7 +52,7 @@ SOLAR_TERM_MESSAGES = {
     (9, 23): "今天是秋分哦，天气渐凉，早晚出门注意保暖。",
     (10, 8): "今天是寒露哦，天气明显转凉，出门记得添衣。",
     (10, 23): "今天是霜降哦，天气更冷了，注意保暖防寒。",
-    (11, 7): "今天是立冬哦，要注意添衣保暖，最好裹成粽子。",
+    (11, 7): "今天是立冬哦，冬天要来了。",
     (11, 22): "今天是小雪哦，天气渐冷，出门注意保暖和路滑。",
     (12, 7): "今天是大雪哦，天气寒冷，出门记得做好保暖。",
     (12, 21): "今天是冬至哦，白天变短，天气寒冷，注意保暖。",
@@ -86,6 +86,7 @@ FREEZING_CONCLUSIONS = (
     "寒冷天气已上线，灯芯要带着暖意再出门",
     "CC提醒灯芯开启冬日防御，厚衣服穿起来",
 )
+
 BIRTHDAY_MONTH = 10
 BIRTHDAY_DAY = 30
 BIRTHDAY_PAGE_URL = "https://chench9527.github.io/-/"
@@ -634,17 +635,17 @@ def build_outing_conclusion(
     if max_temp < 0:
         conclusion = random.choice(FREEZING_CONCLUSIONS)
     elif max_temp < 10:
-        conclusion = "CC会觉得今天很冷，建议穿厚外套，注意保暖"
+        conclusion = random.choice(FREEZING_CONCLUSIONS)
     elif max_temp < 16 or min_temp < 8:
-        conclusion = "CC会觉得今天偏冷，建议多穿一层"
+        conclusion = "今天偏冷，建议多穿一层"
     elif max_temp < 22 or min_temp < 14:
-        conclusion = "CC会觉得今天有点凉，建议长袖搭配薄外套"
+        conclusion = "今天有点凉，建议长袖搭配薄外套"
     elif max_temp >= 32:
-        conclusion = "CC要被热化了，建议穿轻薄透气的衣服"
+        conclusion = "今天很热，建议穿轻薄透气的衣服"
     elif max_temp >= 28:
-        conclusion = "CC会觉得今天有点热，建议选择轻薄穿搭"
+        conclusion = "今天有点热，建议选择轻薄穿搭"
     else:
-        conclusion = "CC会觉得今天温度适中，按舒适穿搭出门即可"
+        conclusion = "今天温度适中，按舒适穿搭出门即可"
 
     reminders = []
     if weather_code in thunder_codes or weather_code in rain_codes:
@@ -673,6 +674,24 @@ def build_temperature_hint(min_temp: float, max_temp: float) -> str:
         return f"今日最低温度：{min_temp}°C"
     if max_temp >= 28:
         return f"今日最高温度：{max_temp}°C"
+    return ""
+
+
+def build_wind_hint(wind_speed: float) -> str:
+    wind_levels = (
+        (118, 12),
+        (103, 11),
+        (89, 10),
+        (75, 9),
+        (62, 8),
+        (50, 7),
+        (39, 6),
+    )
+    for minimum_speed, wind_level in wind_levels:
+        if wind_speed >= minimum_speed:
+            return (
+                f"风力达到{wind_level}级，出门注意防风，少骑车并留意高空坠物。"
+            )
     return ""
 
 
@@ -740,6 +759,7 @@ def build_message(daily: dict) -> str:
         values["temperature_2m_min"],
         values["temperature_2m_max"],
     )
+    wind_hint = build_wind_hint(values["wind_speed_10m_max"])
     special_day_notes = build_special_day_notes(values["time"])
     key_reminder = (
         travel_advice[0]
@@ -754,8 +774,8 @@ def build_message(daily: dict) -> str:
 
     return "\n".join(
         [
-            f"**{message_title} {title_face}**",
-            f"📅 {display_date}",
+            f"**{message_title} {title_face}** 📅 {display_date}",
+            style["greeting"],
             *special_day_notes,
             "",
             (
@@ -763,11 +783,12 @@ def build_message(daily: dict) -> str:
                 f"{values['temperature_2m_max']}°C · {weather_name}"
             ),
             *([temperature_hint] if temperature_hint else []),
+            *([wind_hint] if wind_hint else []),
             "",
             "今日出门结论：",
             *conclusion_lines,
             "",
-            "👕 **穿衣**",
+            f"👕 **{style['clothing_label']}**",
             clothing_advice,
             "",
             f"**{CITY}**",
@@ -781,12 +802,14 @@ def build_message(daily: dict) -> str:
             f"风速：{values['wind_speed_10m_max']} km/h",
             f"紫外线：{values['uv_index_max']}",
             "",
-            "🎒 **出门装备**",
+            f"🚗 **{style['travel_label']}**",
             *[f"- {item}" for item in travel_advice],
             "",
             f"🌅 日出 {sunrise} ｜ 日落 {sunset}",
             "",
             f"今日提醒：{key_reminder}",
+            "",
+            style["closing"],
         ]
     )
 
