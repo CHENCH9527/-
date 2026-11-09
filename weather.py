@@ -474,7 +474,10 @@ def get_weather() -> dict:
                     "sunset",
                 ]
             ),
-            "hourly": "precipitation_probability,rain,weather_code",
+            "hourly": (
+                "temperature_2m,apparent_temperature,"
+                "precipitation_probability,rain,weather_code"
+            ),
             "start_date": previous_date,
             "end_date": forecast_date,
             "temperature_unit": "celsius",
@@ -504,6 +507,24 @@ def get_weather() -> dict:
             daily["temperature_2m_min"][previous_index]
         ]
     hourly = payload.get("hourly", {})
+    morning_records = [
+        (time_text, temperature, apparent_temperature)
+        for time_text, temperature, apparent_temperature in zip(
+            hourly.get("time", []),
+            hourly.get("temperature_2m", []),
+            hourly.get("apparent_temperature", []),
+        )
+        if time_text.startswith(forecast_date)
+        and time_text[11:13] in {"07", "08"}
+    ]
+    if not morning_records:
+        raise RuntimeError(f"天气接口未返回 {forecast_date} 07:00-08:00 的温度数据")
+    today["morning_temperature_2m"] = [
+        [record[1] for record in morning_records]
+    ]
+    today["morning_apparent_temperature"] = [
+        [record[2] for record in morning_records]
+    ]
     today["rain_periods"] = [
         build_rain_periods(
             hourly.get("time", []),
@@ -735,9 +756,15 @@ def build_message(daily: dict) -> str:
     sunset = values["sunset"].split("T", 1)[-1]
     display_date = date.fromisoformat(values["time"]).strftime("%m月%d日")
     style = get_daily_style(values["time"])
+    morning_temperatures = values["morning_temperature_2m"]
+    morning_apparent_temperatures = values["morning_apparent_temperature"]
+    morning_temp_min = min(morning_temperatures)
+    morning_temp_max = max(morning_temperatures)
+    morning_apparent_min = min(morning_apparent_temperatures)
+    morning_apparent_max = max(morning_apparent_temperatures)
     clothing_advice = build_clothing_advice(
-        values["temperature_2m_min"],
-        values["temperature_2m_max"],
+        morning_apparent_min,
+        morning_apparent_max,
         style["tone"],
     )
     travel_advice = build_travel_advice(
@@ -750,11 +777,15 @@ def build_message(daily: dict) -> str:
     outing_conclusion = build_outing_conclusion(
         values["weather_code"],
         values["precipitation_probability_max"],
-        values["temperature_2m_min"],
-        values["temperature_2m_max"],
+        morning_apparent_min,
+        morning_apparent_max,
         values.get("previous_temperature_2m_min"),
         values.get("previous_temperature_2m_max"),
     )
+    if outing_conclusion:
+        outing_conclusion[0] = (
+            f"{outing_conclusion[0]}。{clothing_advice}"
+        )
     temperature_hint = build_temperature_hint(
         values["temperature_2m_min"],
         values["temperature_2m_max"],
@@ -782,14 +813,12 @@ def build_message(daily: dict) -> str:
                 f"今天温度：{values['temperature_2m_min']}°C ~ "
                 f"{values['temperature_2m_max']}°C · {weather_name}"
             ),
+            f"今日最低温度：{values['temperature_2m_min']}°C",
             *([temperature_hint] if temperature_hint else []),
             *([wind_hint] if wind_hint else []),
             "",
             "今日出门结论：",
             *conclusion_lines,
-            "",
-            f"👕 **{style['clothing_label']}**",
-            clothing_advice,
             "",
             f"**{CITY}**",
             (
