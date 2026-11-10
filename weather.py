@@ -678,7 +678,7 @@ def build_outing_conclusion(
     snow_codes = {71, 73, 75, 77, 85, 86}
     thunder_codes = {95, 96, 99}
 
-    if max_temp < 5:
+    if max_temp <= 5:
         conclusion = random.choice(FREEZING_CONCLUSIONS)
     elif max_temp < 16 or min_temp < 8:
         conclusion = "今天偏冷，建议多穿一层"
