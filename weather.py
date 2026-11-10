@@ -669,6 +669,8 @@ def build_outing_conclusion(
     precipitation_probability: float,
     min_temp: float,
     max_temp: float,
+    daily_min_temp: float,
+    daily_max_temp: float,
     previous_min_temp=None,
     previous_max_temp=None,
 ) -> list[str]:
@@ -676,9 +678,7 @@ def build_outing_conclusion(
     snow_codes = {71, 73, 75, 77, 85, 86}
     thunder_codes = {95, 96, 99}
 
-    if max_temp < 0:
-        conclusion = random.choice(FREEZING_CONCLUSIONS)
-    elif max_temp < 10:
+    if max_temp < 5:
         conclusion = random.choice(FREEZING_CONCLUSIONS)
     elif max_temp < 16 or min_temp < 8:
         conclusion = "今天偏冷，建议多穿一层"
@@ -701,9 +701,9 @@ def build_outing_conclusion(
 
     drops = []
     if previous_max_temp is not None:
-        drops.append(previous_max_temp - max_temp)
+        drops.append(previous_max_temp - daily_max_temp)
     if previous_min_temp is not None:
-        drops.append(previous_min_temp - min_temp)
+        drops.append(previous_min_temp - daily_min_temp)
     temperature_drop = max(drops, default=0)
     if temperature_drop >= 2:
         reminders.append(
@@ -714,8 +714,6 @@ def build_outing_conclusion(
 
 
 def build_temperature_hint(min_temp: float, max_temp: float) -> str:
-    if max_temp < 22 or min_temp < 14:
-        return f"今日最低温度：{min_temp}°C"
     if max_temp >= 28:
         return f"今日最高温度：{max_temp}°C"
     return ""
@@ -779,15 +777,13 @@ def build_message(daily: dict) -> str:
     sunset = values["sunset"].split("T", 1)[-1]
     display_date = date.fromisoformat(values["time"]).strftime("%m月%d日")
     style = get_daily_style(values["time"])
-    morning_temperatures = values["morning_temperature_2m"]
     morning_apparent_temperatures = values["morning_apparent_temperature"]
-    morning_temp_min = min(morning_temperatures)
-    morning_temp_max = max(morning_temperatures)
-    morning_apparent_min = min(morning_apparent_temperatures)
-    morning_apparent_max = max(morning_apparent_temperatures)
+    morning_feels_like = sum(morning_apparent_temperatures) / len(
+        morning_apparent_temperatures
+    )
     clothing_advice = build_clothing_advice(
-        morning_apparent_min,
-        morning_apparent_max,
+        morning_feels_like,
+        morning_feels_like,
         style["tone"],
     )
     travel_advice = build_travel_advice(
@@ -800,8 +796,10 @@ def build_message(daily: dict) -> str:
     outing_conclusion = build_outing_conclusion(
         values["weather_code"],
         values["precipitation_probability_max"],
-        morning_apparent_min,
-        morning_apparent_max,
+        morning_feels_like,
+        morning_feels_like,
+        values["temperature_2m_min"],
+        values["temperature_2m_max"],
         values.get("previous_temperature_2m_min"),
         values.get("previous_temperature_2m_max"),
     )
@@ -822,13 +820,14 @@ def build_message(daily: dict) -> str:
     )
     title_face = random.choice(REMINDER_FACES)
     conclusion_animal = random.choice(CONCLUSION_ANIMALS)
-    conclusion_lines = [f"- {item}" for item in outing_conclusion]
+    conclusion_lines = [f"• {item}" for item in outing_conclusion]
     if conclusion_lines:
         conclusion_lines[-1] += f"{conclusion_animal}。"
 
-    return "\n".join(
+    return "  \n".join(
         [
             f"**{message_title} {title_face}** 📅 {display_date}",
+            "",
             style["greeting"],
             *special_day_notes,
             "",
@@ -855,7 +854,7 @@ def build_message(daily: dict) -> str:
             f"紫外线：{values['uv_index_max']}",
             "",
             f"🚗 **{style['travel_label']}**",
-            *[f"- {item}" for item in travel_advice],
+            *[f"• {item}" for item in travel_advice],
             "",
             f"🌅 日出 {sunrise} ｜ 日落 {sunset}",
             "",
