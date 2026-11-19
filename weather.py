@@ -1,5 +1,6 @@
 import os
 import random
+import time
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -10,6 +11,9 @@ CITY = "杭州"
 RECIPIENT_NAME = "灯芯"
 MESSAGE_TITLE = "灯芯今日出门指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
+WEATHER_REQUEST_ATTEMPTS = 3
+WEATHER_REQUEST_TIMEOUT = (10, 45)
+WEATHER_RETRY_DELAYS = (3, 8)
 CONCLUSION_ANIMALS = (
     "🐷",
     "🐶",
@@ -479,34 +483,52 @@ def get_weather() -> dict:
     previous_date = (
         date.fromisoformat(forecast_date) - timedelta(days=1)
     ).isoformat()
-    response = requests.get(
-        "https://api.open-meteo.com/v1/forecast",
-        params={
-            "latitude": LATITUDE,
-            "longitude": LONGITUDE,
-            "daily": ",".join(
-                [
-                    "weather_code",
-                    "temperature_2m_max",
-                    "temperature_2m_min",
-                    "precipitation_probability_max",
-                    "precipitation_sum",
-                    "wind_speed_10m_max",
-                    "uv_index_max",
-                    "sunrise",
-                    "sunset",
-                ]
-            ),
-            "hourly": "precipitation_probability,rain,weather_code",
-            "start_date": previous_date,
-            "end_date": forecast_date,
-            "temperature_unit": "celsius",
-            "wind_speed_unit": "kmh",
-            "timezone": "Asia/Shanghai",
-        },
-        timeout=20,
-    )
-    response.raise_for_status()
+    weather_params = {
+        "latitude": LATITUDE,
+        "longitude": LONGITUDE,
+        "daily": ",".join(
+            [
+                "weather_code",
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "precipitation_probability_max",
+                "precipitation_sum",
+                "wind_speed_10m_max",
+                "uv_index_max",
+                "sunrise",
+                "sunset",
+            ]
+        ),
+        "hourly": "precipitation_probability,rain,weather_code",
+        "start_date": previous_date,
+        "end_date": forecast_date,
+        "temperature_unit": "celsius",
+        "wind_speed_unit": "kmh",
+        "timezone": "Asia/Shanghai",
+    }
+    response = None
+    for attempt in range(1, WEATHER_REQUEST_ATTEMPTS + 1):
+        try:
+            response = requests.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params=weather_params,
+                timeout=WEATHER_REQUEST_TIMEOUT,
+            )
+            response.raise_for_status()
+            break
+        except requests.RequestException as exc:
+            if attempt == WEATHER_REQUEST_ATTEMPTS:
+                raise RuntimeError(
+                    f"天气接口请求失败，已尝试 {WEATHER_REQUEST_ATTEMPTS} 次"
+                ) from exc
+            delay = WEATHER_RETRY_DELAYS[attempt - 1]
+            print(
+                f"天气接口第 {attempt} 次请求失败，将在 {delay} 秒后重试：{exc}"
+            )
+            time.sleep(delay)
+
+    if response is None:
+        raise RuntimeError("天气接口未返回数据")
     payload = response.json()
     daily = payload["daily"]
     if not daily.get("time") or daily["time"][-1] != forecast_date:
