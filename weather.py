@@ -1,7 +1,8 @@
 import os
 import random
+import re
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import requests
@@ -12,8 +13,9 @@ RECIPIENT_NAME = "灯芯"
 MESSAGE_TITLE = "灯芯今日出门指南"
 BIRTHDAY_MESSAGE_TITLE = "🎂 生日特别来信"
 WEATHER_REQUEST_ATTEMPTS = 3
-WEATHER_REQUEST_TIMEOUT = (10, 45)
-WEATHER_RETRY_DELAYS = (3, 8)
+# TLS handshakes use the connection timeout, including some ReadTimeout errors.
+WEATHER_REQUEST_TIMEOUT = (30, 45)
+WEATHER_RETRY_DELAYS = (10, 30)
 CONCLUSION_ANIMALS = (
     "🐷",
     "🐶",
@@ -478,86 +480,189 @@ def build_birthday_message() -> str:
     )
 
 
-def get_weather() -> dict:
-    forecast_date = get_beijing_today()
-    previous_date = (
-        date.fromisoformat(forecast_date) - timedelta(days=1)
-    ).isoformat()
-    weather_params = {
-        "latitude": LATITUDE,
-        "longitude": LONGITUDE,
-        "daily": ",".join(
-            [
-                "weather_code",
-                "temperature_2m_max",
-                "temperature_2m_min",
-                "precipitation_probability_max",
-                "precipitation_sum",
-                "wind_speed_10m_max",
-                "uv_index_max",
-                "sunrise",
-                "sunset",
-            ]
-        ),
-        "hourly": "precipitation_probability,rain,weather_code",
-        "start_date": previous_date,
-        "end_date": forecast_date,
-        "temperature_unit": "celsius",
-        "wind_speed_unit": "kmh",
-        "timezone": "Asia/Shanghai",
-    }
-    response = None
+def get_qweather_config() -> tuple[str, str]:
+    api_host = os.environ.get("QWEATHER_API_HOST", "").strip().lower()
+    api_key = os.environ.get("QWEATHER_API_KEY", "").strip()
+    if not api_host or not api_key:
+        raise RuntimeError(
+            "请在 GitHub Actions Secrets 中配置 QWEATHER_API_HOST 和 "
+            "QWEATHER_API_KEY，分别填写和风天气专属 API Host 和 API Key。"
+        )
+    api_host = api_host.removeprefix("https://").rstrip("/")
+    if not re.fullmatch(r"[a-z0-9-]+(?:\.[a-z0-9-]+)*\.qweatherapi\.com", api_host):
+        raise RuntimeError("QWEATHER_API_HOST 应为控制台分配的 *.qweatherapi.com 域名")
+    return api_host, api_key
+
+
+def request_qweather(api_host: str, api_key: str, path: str, params: dict) -> dict:
     for attempt in range(1, WEATHER_REQUEST_ATTEMPTS + 1):
+        print(
+            f"正在请求和风天气 {path}（第 {attempt}/{WEATHER_REQUEST_ATTEMPTS} 次，"
+            f"连接超时 {WEATHER_REQUEST_TIMEOUT[0]} 秒，"
+            f"读取超时 {WEATHER_REQUEST_TIMEOUT[1]} 秒）",
+            flush=True,
+        )
         try:
             response = requests.get(
-                "https://api.open-meteo.com/v1/forecast",
-                params=weather_params,
+                f"https://{api_host}{path}",
+                headers={"X-QW-Api-Key": api_key},
+                params=params,
                 timeout=WEATHER_REQUEST_TIMEOUT,
             )
             response.raise_for_status()
-            break
-        except requests.RequestException as exc:
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError("和风天气返回内容不是 JSON 对象")
+            return payload
+        except (requests.RequestException, ValueError) as exc:
+            if isinstance(exc, requests.HTTPError):
+                status = exc.response.status_code if exc.response is not None else None
+                if status is not None and 400 <= status < 500 and status not in {408, 429}:
+                    raise RuntimeError(
+                        f"和风天气请求失败（HTTP {status}），"
+                        "请检查 API Host、API Key 及对应接口的服务权限。"
+                    ) from exc
             if attempt == WEATHER_REQUEST_ATTEMPTS:
                 raise RuntimeError(
-                    f"天气接口请求失败，已尝试 {WEATHER_REQUEST_ATTEMPTS} 次"
+                    f"和风天气请求失败，已尝试 {WEATHER_REQUEST_ATTEMPTS} 次"
                 ) from exc
             delay = WEATHER_RETRY_DELAYS[attempt - 1]
             print(
-                f"天气接口第 {attempt} 次请求失败，将在 {delay} 秒后重试：{exc}"
+                f"天气接口第 {attempt} 次请求失败，将在 {delay} 秒后重试：{exc}",
+                flush=True,
             )
             time.sleep(delay)
 
-    if response is None:
-        raise RuntimeError("天气接口未返回数据")
-    payload = response.json()
-    daily = payload["daily"]
-    if not daily.get("time") or daily["time"][-1] != forecast_date:
-        raise RuntimeError(
-            f"天气日期不匹配：请求 {forecast_date}，返回 {daily.get('time')}"
-        )
-    today_index = daily["time"].index(forecast_date)
-    previous_index = today_index - 1
-    today = {
-        key: [values[today_index]]
-        for key, values in daily.items()
+
+def qweather_local_time(time_text: str) -> datetime:
+    moment = datetime.fromisoformat(time_text.replace("Z", "+00:00"))
+    if moment.tzinfo is None:
+        raise ValueError("和风天气返回的时间缺少时区")
+    return moment.astimezone(ZoneInfo("Asia/Shanghai"))
+
+
+def qweather_code(condition: dict) -> int:
+    code = int(condition["code"])
+    known = {
+        100: 0, 101: 2, 102: 1, 103: 2, 104: 3,
+        150: 0, 151: 2, 152: 1, 153: 2,
+        300: 80, 301: 81, 302: 95, 303: 99, 304: 99,
+        305: 61, 306: 63, 307: 65, 308: 65, 309: 51,
+        313: 66, 350: 80, 351: 81,
+        400: 71, 401: 73, 402: 75, 403: 85, 407: 85,
+        456: 71, 457: 85, 501: 45, 509: 45, 510: 48,
+        514: 48, 515: 48,
     }
-    if previous_index >= 0:
-        today["previous_temperature_2m_max"] = [
-            daily["temperature_2m_max"][previous_index]
+    if code in known:
+        return known[code]
+    if 300 <= code < 400:
+        return 61
+    if 400 <= code < 500:
+        return 71
+    return -1
+
+
+def qweather_measurement(measurement: dict, unit: str) -> float:
+    value = float(measurement["value"])
+    source_unit = measurement["unit"]
+    if unit == "km/h" and source_unit == "m/s":
+        value *= 3.6
+    elif source_unit != unit:
+        raise ValueError(f"和风天气单位不匹配：预期 {unit}，返回 {source_unit}")
+    if not float("-inf") < value < float("inf"):
+        raise ValueError("和风天气返回了无效数值")
+    return round(value, 1)
+
+
+def qweather_attributions(payload: dict) -> list[str]:
+    attributions = payload.get("metadata", {}).get("attributions", [])
+    if not isinstance(attributions, list) or any(
+        not isinstance(attribution, str) for attribution in attributions
+    ):
+        raise ValueError("和风天气数据来源声明格式错误")
+    return attributions
+
+
+def get_weather() -> dict:
+    api_host, api_key = get_qweather_config()
+    forecast_date = get_beijing_today()
+    location_path = f"{LATITUDE:.2f}/{LONGITUDE:.2f}"
+    payload = request_qweather(
+        api_host, api_key, f"/weather/v1/daily/{location_path}",
+        {"days": 2, "localTime": "true", "lang": "zh"},
+    )
+    try:
+        matching_days = [
+            day for day in payload["days"]
+            if qweather_local_time(day["forecastStartTime"]).date().isoformat()
+            == forecast_date
         ]
-        today["previous_temperature_2m_min"] = [
-            daily["temperature_2m_min"][previous_index]
-        ]
-    hourly = payload.get("hourly", {})
-    today["rain_periods"] = [
-        build_rain_periods(
-            hourly.get("time", []),
-            hourly.get("precipitation_probability", []),
-            hourly.get("rain", []),
-            hourly.get("weather_code", []),
-            forecast_date,
+        if not matching_days:
+            raise ValueError(f"天气日期不匹配：预报中没有北京时间 {forecast_date}")
+        day = matching_days[0]
+        phases = [day["daytime"], day["nighttime"]]
+        codes = [qweather_code(phase["condition"]) for phase in phases]
+        # Hazardous night forecasts also need an umbrella/snow/thunder reminder.
+        severity = {95: 6, 96: 6, 99: 6, 71: 5, 73: 5, 75: 5, 85: 5,
+                    86: 5, 45: 2, 48: 2}
+        weather_code = max(
+            codes, key=lambda code: severity.get(code, 4 if 50 <= code < 90 else 0)
         )
-    ]
+        descriptions = list(dict.fromkeys(phase["condition"]["text"] for phase in phases))
+        today = {
+            "time": [forecast_date],
+            "weather_code": [weather_code],
+            "weather_name": ["转".join(descriptions)],
+            "temperature_2m_max": [qweather_measurement(day["temperatureMax"], "°C")],
+            "temperature_2m_min": [qweather_measurement(day["temperatureMin"], "°C")],
+            "precipitation_probability_max": [round(max(
+                float(phase["precipitation"]["probability"]) for phase in phases
+            ) * 100)],
+            "precipitation_sum": [round(sum(
+                qweather_measurement(phase["precipitation"]["amount"], "mm")
+                for phase in phases
+            ), 1)],
+            "wind_speed_10m_max": [max(
+                qweather_measurement(phase["wind"]["speed"], "km/h") for phase in phases
+            )],
+            "uv_index_max": [float(day["uvIndexMax"])],
+            "sunrise": [qweather_local_time(day["astro"]["sunrise"]).strftime("%H:%M")],
+            "sunset": [qweather_local_time(day["astro"]["sunset"]).strftime("%H:%M")],
+            "rain_periods": ["小时预报暂不可用，请参考全天降雨概率"],
+            "weather_source": ["和风天气"],
+            "weather_attributions": [qweather_attributions(payload)],
+        }
+        if today["temperature_2m_min"][0] > today["temperature_2m_max"][0]:
+            raise ValueError("天气最低温度高于最高温度")
+        if not 0 <= today["precipitation_probability_max"][0] <= 100:
+            raise ValueError("天气降雨概率超出范围")
+    except (KeyError, TypeError, ValueError, IndexError) as exc:
+        raise RuntimeError(f"和风天气每日预报数据校验失败：{exc}") from exc
+
+    # The daily forecast is enough to send a message if hourly data is unavailable.
+    try:
+        hourly_payload = request_qweather(
+            api_host, api_key, f"/weather/v1/hourly/{location_path}",
+            {"hours": 24, "localTime": "true", "lang": "zh"},
+        )
+        hours = sorted(hourly_payload["hours"], key=lambda hour: hour["forecastTime"])
+        hours = [hour for hour in hours if qweather_local_time(
+            hour["forecastTime"]
+        ).date().isoformat() == forecast_date]
+        if not hours:
+            raise ValueError("小时预报没有北京时间当天的数据")
+        today["rain_periods"] = [build_rain_periods(
+            [qweather_local_time(hour["forecastTime"]).isoformat() for hour in hours],
+            [float(hour["precipitation"]["probability"]) * 100 for hour in hours],
+            [qweather_measurement(hour["precipitation"]["amount"], "mm") for hour in hours],
+            [qweather_code(hour["condition"]) for hour in hours],
+            forecast_date,
+        )]
+        today["weather_attributions"] = [list(dict.fromkeys(
+            today["weather_attributions"][0] + qweather_attributions(hourly_payload)
+        ))]
+    except (RuntimeError, KeyError, TypeError, ValueError, IndexError) as exc:
+        print(f"小时预报获取失败，继续使用每日预报发送提醒：{exc}", flush=True)
     return today
 
 
@@ -773,7 +878,7 @@ def build_message_title(weather_code: int) -> str:
 def build_message(daily: dict) -> str:
     values = {key: daily[key][0] for key in daily}
     message_title = build_message_title(values["weather_code"])
-    weather_name = WEATHER_NAMES.get(values["weather_code"], "未知天气")
+    weather_name = values.get("weather_name") or WEATHER_NAMES.get(values["weather_code"], "未知天气")
     sunrise = values["sunrise"].split("T", 1)[-1]
     sunset = values["sunset"].split("T", 1)[-1]
     display_date = date.fromisoformat(values["time"]).strftime("%m月%d日")
@@ -859,6 +964,9 @@ def build_message(daily: dict) -> str:
             f"今日提醒：{key_reminder}",
             "",
             style["closing"],
+            *(["", "天气数据：[和风天气](https://www.qweather.com/)"]
+              if values.get("weather_source") == "和风天气" else []),
+            *values.get("weather_attributions", []),
         ]
     )
 
