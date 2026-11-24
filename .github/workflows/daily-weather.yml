@@ -36,6 +36,8 @@ jobs:
       - name: Build and send message
         run: python weather.py
         env:
+          QWEATHER_API_HOST: ${{ secrets.QWEATHER_API_HOST }}
+          QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           PUSHPLUS_TOPIC: hangzhou_weather
           MESSAGE_KIND: ${{ inputs.message_kind || 'auto' }}
