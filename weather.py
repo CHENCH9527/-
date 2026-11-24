@@ -927,6 +927,16 @@ def build_message(daily: dict) -> str:
     if conclusion_lines:
         conclusion_lines[-1] += f"{conclusion_animal}。"
 
+    source_footer = []
+    if values.get("weather_source") == "和风天气":
+        sources = ["[和风天气](https://www.qweather.com/)"]
+        for attribution in values.get("weather_attributions", []):
+            if re.fullmatch(r"https?://[^\s<>]+", attribution):
+                sources.append(f"[来源声明](<{attribution}>)")
+            else:
+                sources.append(attribution)
+        source_footer = ["", "天气数据：" + " · ".join(sources)]
+
     return "  \n".join(
         [
             f"**{message_title} {title_face}** 📅 {display_date}",
@@ -964,9 +974,7 @@ def build_message(daily: dict) -> str:
             f"今日提醒：{key_reminder}",
             "",
             style["closing"],
-            *(["", "天气数据：[和风天气](https://www.qweather.com/)"]
-              if values.get("weather_source") == "和风天气" else []),
-            *values.get("weather_attributions", []),
+            *source_footer,
         ]
     )
 
